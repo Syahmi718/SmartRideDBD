@@ -9,6 +9,10 @@ import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import android.Manifest
+import android.content.pm.PackageManager
+import android.util.Log
+import androidx.core.content.ContextCompat
 
 object NotificationUtils {
     private const val PREFS_NAME = "smart_ride_prefs"
@@ -82,16 +86,37 @@ object NotificationUtils {
      */
     fun sendNotification(context: Context, title: String, message: String) {
         // Check if notifications are enabled before sending
-        if (!isNotificationEnabled(context)) return
+        if (!isNotificationEnabled(context)) {
+            Log.d("NotificationUtils", "Notifications are disabled by user")
+            return
+        }
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setContentTitle(title)
-            .setContentText(message)
-            .setSmallIcon(R.drawable.logodbd) // Ensure this icon exists
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .build()
+        // Check if we have permission to post notifications on Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) 
+                    != PackageManager.PERMISSION_GRANTED) {
+                Log.e("NotificationUtils", "Notification permission not granted")
+                return
+            }
+        }
 
-        NotificationManagerCompat.from(context).notify(System.currentTimeMillis().toInt(), notification)
+        try {
+            val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setSmallIcon(R.drawable.logodbd)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setAutoCancel(true)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .build()
+
+            val notificationId = System.currentTimeMillis().toInt()
+            Log.d("NotificationUtils", "Sending notification with ID: $notificationId")
+            NotificationManagerCompat.from(context).notify(notificationId, notification)
+            Log.d("NotificationUtils", "Notification sent successfully")
+        } catch (e: Exception) {
+            Log.e("NotificationUtils", "Error sending notification: ${e.message}")
+        }
     }
 }

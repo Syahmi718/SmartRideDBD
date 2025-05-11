@@ -125,8 +125,9 @@ class PredictionActivity : AppCompatActivity() {
 
         // Observe advice for alert
         uiViewModel.adviceForAlert.observe(this, Observer { advice ->
-            advice?.let {
-                showAggressiveDrivingAlert(it)
+            if (!advice.isNullOrEmpty() && uiViewModel.shouldShowAlert()) {
+                showAggressiveDrivingAlert(advice)
+                uiViewModel.markAlertAsShown()
             }
         })
 
@@ -138,6 +139,17 @@ class PredictionActivity : AppCompatActivity() {
                 if (status) getColor(R.color.green) else getColor(R.color.red)
             )
         })
+    }
+
+    override fun onResume() {
+        super.onResume()
+        
+        // Check if there's a pending alert when returning to this activity
+        val advice = uiViewModel.adviceForAlert.value
+        if (!advice.isNullOrEmpty() && uiViewModel.shouldShowAlert()) {
+            showAggressiveDrivingAlert(advice)
+            uiViewModel.markAlertAsShown()
+        }
     }
 
     private fun updateCharts(accelerometerData: FloatArray, gyroscopeData: FloatArray) {
@@ -175,22 +187,29 @@ class PredictionActivity : AppCompatActivity() {
     }
 
     private fun showAggressiveDrivingAlert(advice: String) {
-        val inflater = LayoutInflater.from(this)
-        val dialogView = inflater.inflate(R.layout.dialog_aggressive_behavior, null)
-        val adviceTextView: TextView = dialogView.findViewById(R.id.dialog_message)
-        val dismissButton: Button = dialogView.findViewById(R.id.dialog_dismiss)
-
-        adviceTextView.text = advice
-
-        val alertDialog = AlertDialog.Builder(this)
-            .setView(dialogView)
-            .setCancelable(false)
-            .create()
-
+        // Create custom dialog using the same layout as MainActivity
+        val dialogBuilder = AlertDialog.Builder(this)
+        val inflater = this.layoutInflater
+        val dialogView = inflater.inflate(R.layout.custom_alert_dialog, null)
+        dialogBuilder.setView(dialogView)
+        
+        // Set the title and message
+        val titleTextView = dialogView.findViewById<TextView>(R.id.alertTitleText)
+        val messageTextView = dialogView.findViewById<TextView>(R.id.alertMessageText)
+        val dismissButton = dialogView.findViewById<Button>(R.id.alertDismissButton)
+        
+        titleTextView.text = "Aggressive Driving Alert"
+        messageTextView.text = advice
+        
+        // Create and show the dialog
+        val alertDialog = dialogBuilder.create()
+        alertDialog.setCancelable(false)
+        
+        // Set button click listener
         dismissButton.setOnClickListener {
             alertDialog.dismiss()
         }
-
+        
         alertDialog.show()
     }
 }

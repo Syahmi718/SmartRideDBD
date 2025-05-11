@@ -19,6 +19,119 @@
         app:lottie_loop="true"
         android:contentDescription="Speedometer Animation" />
 
+    <!-- Speed Display -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="4dp"
+        app:cardBackgroundColor="@color/colorPrimary">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Current Speed"
+                android:textColor="@color/textOnPrimary"
+                android:textSize="16sp"
+                android:gravity="center"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <TextView
+                    android:id="@+id/speed_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Stationary"
+                    android:textColor="@color/textOnPrimary"
+                    android:textSize="36sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/speed_unit"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" km/h"
+                    android:textColor="@color/textOnPrimary"
+                    android:textSize="16sp"
+                    android:layout_gravity="bottom"
+                    android:layout_marginBottom="6dp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/speed_limit_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Speed Limit: 60 km/h"
+                android:textColor="@color/textOnPrimary"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:layout_marginTop="4dp"/>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Driving Session Controls -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="4dp"
+        app:cardBackgroundColor="@color/colorSecondary">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/driving_session_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Driving Session: Not Started"
+                android:textColor="@color/textOnPrimary"
+                android:textSize="16sp"
+                android:gravity="center"
+                android:layout_marginBottom="8dp"/>
+
+            <Button
+                android:id="@+id/start_stop_driving_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="START DRIVING"
+                android:backgroundTint="@color/green"
+                android:textColor="@color/textOnPrimary"
+                android:textStyle="bold"
+                android:padding="12dp"
+                android:textSize="16sp" />
+                
+            <!-- Moved Monitor Prediction Button here -->
+            <Button
+                android:id="@+id/monitor_prediction_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Monitor Prediction Process"
+                android:backgroundTint="@color/colorPrimary"
+                android:textColor="@color/textOnPrimary"
+                android:padding="12dp"
+                android:textSize="16sp"
+                android:layout_marginTop="8dp"
+                android:transitionName="shared_button_transition" />
+
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
     <!-- Welcome Text -->
     <TextView
         android:id="@+id/welcome_text"
@@ -66,18 +179,6 @@
         android:textSize="16sp" />
 
     <Button
-        android:id="@+id/monitor_prediction_button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Monitor Prediction Process"
-        android:backgroundTint="@color/colorSecondary"
-        android:textColor="@color/textOnPrimary"
-        android:padding="12dp"
-        android:textSize="16sp"
-        android:layout_marginBottom="16dp"
-        android:transitionName="shared_button_transition" />
-
-    <Button
         android:id="@+id/driving_history_log_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -86,6 +187,18 @@
         android:textColor="@color/textOnPrimary"
         android:padding="12dp"
         android:textSize="16sp"
+        android:layout_marginBottom="16dp"
         android:transitionName="shared_button_transition" />
+        
+    <!-- Simulation Button -->
+    <Button
+        android:id="@+id/simulation_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Start Simulation"
+        android:backgroundTint="@color/red"
+        android:textColor="@color/textOnPrimary"
+        android:padding="12dp"
+        android:textSize="16sp" />
 
 </LinearLayout>
