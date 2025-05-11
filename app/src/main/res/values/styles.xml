@@ -1,0 +1,50 @@
+<resources>
+    <!-- Base application theme -->
+    <style name="AppTheme" parent="Theme.MaterialComponents.Light.DarkActionBar">
+        <!-- Customize your theme here -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+    
+    <!-- Button styles -->
+    <style name="Widget.App.Button" parent="Widget.MaterialComponents.Button">
+        <item name="android:textColor">@color/textOnPrimary</item>
+        <item name="backgroundTint">@color/colorAccent</item>
+        <item name="android:textSize">16sp</item>
+        <item name="cornerRadius">8dp</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">8dp</item>
+    </style>
+    
+    <!-- TextView styles -->
+    <style name="TextStyle.Title" parent="TextAppearance.MaterialComponents.Headline5">
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+    
+    <style name="TextStyle.Subtitle" parent="TextAppearance.MaterialComponents.Subtitle1">
+        <item name="android:textColor">@color/textSecondary</item>
+    </style>
+    
+    <style name="TextStyle.Body" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:textColor">@color/textPrimary</item>
+    </style>
+
+    <style name="CustomButtonStyle" parent="Widget.MaterialComponents.Button">
+        <!-- Background color for the button -->
+        <item name="colorPrimary">@color/buttonBackgroundColor</item>
+        <!-- Text color for the button -->
+        <item name="android:textColor">@color/textPrimaryColor</item>
+        <!-- Corner radius for rounded corners -->
+        <item name="shapeAppearanceOverlay">@style/CustomButtonShape</item>
+    </style>
+
+    <!-- Define rounded corners for the button -->
+    <style name="CustomButtonShape" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">8dp</item>
+    </style>
+</resources>

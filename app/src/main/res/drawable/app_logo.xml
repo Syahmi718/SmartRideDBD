@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Background -->
+    <path
+        android:fillColor="#009688"
+        android:pathData="M0,0h108v108h-108z" />
+    
+    <!-- Speedometer outer circle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,30 A24,24 0 1,1 54,78 A24,24 0 1,1 54,30Z"
+        android:strokeWidth="2"
+        android:strokeColor="#FFFFFF" />
+    
+    <!-- Speedometer needle -->
+    <path
+        android:fillColor="#1DE9B6"
+        android:pathData="M54,54 L70,40 L72,42 L54,58 Z" />
+        
+    <!-- Center dot -->
+    <path
+        android:fillColor="#1DE9B6"
+        android:pathData="M54,54 A4,4 0 1,1 54,62 A4,4 0 1,1 54,54Z" />
+    
+    <!-- Road line -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,80 L88,80 L88,84 L20,84 Z" />
+    
+    <!-- Small tick marks -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M42,34 L44,38 L46,37 L44,33 Z" />
+    
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M64,34 L62,38 L60,37 L62,33 Z" />
+    
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M74,45 L70,47 L69,45 L73,43 Z" />
+    
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,45 L38,47 L39,45 L35,43 Z" />
+</vector> 

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.example.smartride_dbd">
+
+    <!-- Permissions -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+    <!-- Target SDK and compatibility notes -->
+    <!-- 
+    <uses-sdk
+        android:minSdkVersion="21"
+        android:targetSdkVersion="34" /> 
+    -->
+
+    <application
+        android:name=".MyApplication"
+        android:allowBackup="true"
+        android:supportsRtl="true"
+        android:usesCleartextTraffic="true"
+        android:label="SmartRide"
+        android:theme="@style/Theme.AppCompat"
+        tools:ignore="GoogleAppIndexingWarning">
+
+        <!-- Activities -->
+        <activity
+            android:name=".DrivingHistoryLogActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".PredictionActivity"
+            android:exported="true" />
+
+        <!-- Foreground Service -->
+        <service
+            android:name=".PredictionForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="location|dataSync" />
+    </application>
+
+</manifest>

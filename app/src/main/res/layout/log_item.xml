@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Drive Name -->
+        <TextView
+            android:id="@+id/log_drive_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Drive Name: Morning Commute"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:textColor="#000000" />
+
+        <!-- Driver Name -->
+        <TextView
+            android:id="@+id/log_driver_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Driver Name: John Doe"
+            android:textSize="14sp"
+            android:textColor="#000000" />
+
+        <!-- Date -->
+        <TextView
+            android:id="@+id/log_date"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Date: 07 Jan 2025"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:textColor="#000000" />
+
+        <!-- Time -->
+        <TextView
+            android:id="@+id/log_time"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Time: 12:00 PM"
+            android:textSize="14sp"
+            android:textColor="#000000" />
+
+        <!-- Driving Time -->
+        <TextView
+            android:id="@+id/log_driving_time"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Driving Time: 1h 30m"
+            android:textSize="14sp"
+            android:textColor="#000000" />
+
+        <!-- Normal and Aggressive Predictions -->
+        <TextView
+            android:id="@+id/log_predictions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Normal: 50, Aggressive: 10"
+            android:textSize="14sp"
+            android:textColor="#000000" />
+
+        <!-- Performance Loss -->
+        <TextView
+            android:id="@+id/log_performance_loss"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Performance Loss: 12%"
+            android:textSize="14sp"
+            android:textColor="#FF0000" />
+
+    </LinearLayout>
+</androidx.cardview.widget.CardView>
