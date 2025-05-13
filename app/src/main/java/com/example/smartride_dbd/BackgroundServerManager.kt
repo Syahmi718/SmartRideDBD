@@ -3,12 +3,13 @@ package com.example.smartride_dbd
 
 import android.content.Context
 import android.util.Log
-import com.example.smartride_dbd.HttpServer
 
-
+/**
+ * This class manages the sensor data collection and model prediction in the background
+ */
 class BackgroundServerManager(private val context: Context) {
 
-    private lateinit var httpServer: HttpServer
+    private lateinit var sensorDataCollector: SensorDataCollector
     private lateinit var modelPredictor: ModelPredictor
     private lateinit var uiViewModel: UiViewModel
 
@@ -17,15 +18,12 @@ class BackgroundServerManager(private val context: Context) {
         uiViewModel = (context.applicationContext as MyApplication).uiViewModel
         modelPredictor = ModelPredictor(context)
 
-        // Initialize HTTP server on port 8081 for Flutter communication
-        httpServer = HttpServer(
-            port = 8081,  // Changed to port 8081 for Flutter communication
-            uiViewModel = uiViewModel
-        )
-
-        // Start the server
-        httpServer.start()
-        Log.d("BackgroundServerManager", "HTTP Server started on port 8081")
+        // Initialize sensor data collector
+        sensorDataCollector = SensorDataCollector(context, uiViewModel)
+        
+        // Start collecting sensor data
+        sensorDataCollector.startCollection()
+        Log.d(TAG, "Sensor data collection started")
 
         // Observe sensor data and perform prediction
         uiViewModel.sensorData.observeForever { data ->
@@ -34,16 +32,20 @@ class BackgroundServerManager(private val context: Context) {
                     val predictionResult = modelPredictor.predict(it)
                     val predictionText = if (predictionResult[0] >= 0.5) "Aggressive" else "Normal"
                     uiViewModel.updatePredictionResult(predictionText) // Update prediction result
-                    Log.d("BackgroundServerManager", "Prediction: $predictionText")
+                    Log.d(TAG, "Prediction: $predictionText")
                 }
             }
         }
     }
 
     fun stop() {
-        // Stop server and release resources
-        httpServer.stop()
+        // Stop sensor data collection and release resources
+        sensorDataCollector.stopCollection()
         modelPredictor.close()
-        Log.d("BackgroundServerManager", "HTTP Server and Model Predictor stopped")
+        Log.d(TAG, "Sensor data collection and Model Predictor stopped")
+    }
+    
+    companion object {
+        private const val TAG = "BackgroundServerManager"
     }
 }

@@ -20,6 +20,11 @@ import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.random.Random
 
+/**
+ * Foreground service for driving behavior prediction.
+ * This service works with the sensor data collected directly by the app
+ * and provides real-time predictions and notifications.
+ */
 class PredictionForegroundService : Service(), SpeedTracker.SpeedUpdateListener {
 
     private lateinit var uiViewModel: UiViewModel

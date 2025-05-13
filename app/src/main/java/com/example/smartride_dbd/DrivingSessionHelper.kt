@@ -15,7 +15,7 @@ class DrivingSessionHelper(context: Context) :
     companion object {
         private const val TAG = "DrivingSessionHelper"
         private const val DATABASE_NAME = "driving_sessions.db"
-        private const val DATABASE_VERSION = 1
+        private const val DATABASE_VERSION = 2  // Increased version for schema update
 
         // Table name
         private const val TABLE_SESSIONS = "driving_sessions"
@@ -30,7 +30,12 @@ class DrivingSessionHelper(context: Context) :
         private const val KEY_AVG_SPEED = "avg_speed"
         private const val KEY_AGGRESSIVE_COUNT = "aggressive_count"
         private const val KEY_NORMAL_COUNT = "normal_count"
+        private const val KEY_ECO_SCORE = "eco_score"  // New column for Eco Score
     }
+    
+    // Temporary storage for acceleration data for Eco Score calculation
+    private val accelerationData = mutableListOf<Triple<Float, Float, Float>>()
+    private val accelerationTimestamps = mutableListOf<Long>()
 
     override fun onCreate(db: SQLiteDatabase) {
         val createTableQuery = """
@@ -43,7 +48,8 @@ class DrivingSessionHelper(context: Context) :
                 $KEY_MAX_SPEED REAL,
                 $KEY_AVG_SPEED REAL,
                 $KEY_AGGRESSIVE_COUNT INTEGER,
-                $KEY_NORMAL_COUNT INTEGER
+                $KEY_NORMAL_COUNT INTEGER,
+                $KEY_ECO_SCORE INTEGER
             )
         """.trimIndent()
 
@@ -52,9 +58,40 @@ class DrivingSessionHelper(context: Context) :
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // On upgrade, drop older tables and create new ones
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_SESSIONS")
-        onCreate(db)
+        if (oldVersion < 2) {
+            // Add Eco Score column for version 2
+            db.execSQL("ALTER TABLE $TABLE_SESSIONS ADD COLUMN $KEY_ECO_SCORE INTEGER DEFAULT 0")
+            Log.d(TAG, "Added Eco Score column to existing database")
+        }
+    }
+
+    /**
+     * Add acceleration data for Eco Score calculation
+     */
+    fun addAccelerationData(x: Float, y: Float, z: Float) {
+        val timestamp = System.currentTimeMillis()
+        accelerationData.add(Triple(x, y, z))
+        
+        // Only add timestamp for differences
+        if (accelerationTimestamps.isEmpty() || timestamp - accelerationTimestamps.last() > 0) {
+            accelerationTimestamps.add(timestamp)
+        }
+        
+        // Prevent unbounded growth by limiting to last 1000 data points
+        if (accelerationData.size > 1000) {
+            accelerationData.removeAt(0)
+        }
+        if (accelerationTimestamps.size > 1000) {
+            accelerationTimestamps.removeAt(0)
+        }
+    }
+    
+    /**
+     * Reset acceleration data (e.g., when starting a new session)
+     */
+    fun resetAccelerationData() {
+        accelerationData.clear()
+        accelerationTimestamps.clear()
     }
 
     /**
@@ -71,7 +108,11 @@ class DrivingSessionHelper(context: Context) :
             put(KEY_AVG_SPEED, 0.0)
             put(KEY_AGGRESSIVE_COUNT, 0)
             put(KEY_NORMAL_COUNT, 0)
+            put(KEY_ECO_SCORE, 0)  // Default eco score
         }
+
+        // Reset acceleration data for new session
+        resetAccelerationData()
 
         // Insert the new row, returning the primary key
         val id = db.insert(TABLE_SESSIONS, null, values)
@@ -102,6 +143,9 @@ class DrivingSessionHelper(context: Context) :
             0.0
         }
 
+        // Calculate Eco Score
+        val ecoScore = calculateEcoScore(aggressiveCount, normalCount)
+
         val values = ContentValues().apply {
             put(KEY_END_TIME, endTime)
             put(KEY_DURATION, durationMinutes)
@@ -109,14 +153,42 @@ class DrivingSessionHelper(context: Context) :
             put(KEY_AVG_SPEED, avgSpeed)
             put(KEY_AGGRESSIVE_COUNT, aggressiveCount)
             put(KEY_NORMAL_COUNT, normalCount)
+            put(KEY_ECO_SCORE, ecoScore)
         }
 
         // Update the session
         val result = db.update(TABLE_SESSIONS, values, "$KEY_ID = ?", arrayOf(sessionId.toString())) > 0
         db.close()
         
-        Log.d(TAG, "Ended driving session $sessionId, duration: $durationMinutes min")
+        Log.d(TAG, "Ended driving session $sessionId, duration: $durationMinutes min, Eco Score: $ecoScore")
         return result
+    }
+    
+    /**
+     * Calculate the Eco Score based on available data
+     */
+    private fun calculateEcoScore(aggressiveCount: Int, normalCount: Int): Int {
+        // If we have acceleration data, use the full Eco Score calculation
+        return if (accelerationData.size > 10) {
+            // Calculate delta times between acceleration samples
+            val deltaTimeMillis = mutableListOf<Long>()
+            for (i in 1 until accelerationTimestamps.size) {
+                deltaTimeMillis.add(accelerationTimestamps[i] - accelerationTimestamps[i-1])
+            }
+            
+            EcoScoreCalculator.calculateEcoScore(
+                accelerationData = accelerationData,
+                deltaTimeMillis = deltaTimeMillis,
+                aggressivePredictions = aggressiveCount,
+                totalPredictions = aggressiveCount + normalCount
+            )
+        } else {
+            // Fallback to simplified calculation if not enough acceleration data
+            EcoScoreCalculator.calculateSimplifiedEcoScore(
+                aggressivePredictions = aggressiveCount,
+                totalPredictions = aggressiveCount + normalCount
+            )
+        }
     }
     
     /**
@@ -152,6 +224,17 @@ class DrivingSessionHelper(context: Context) :
         
         if (cursor.moveToFirst()) {
             do {
+                val ecoScoreIndex = cursor.getColumnIndex(KEY_ECO_SCORE)
+                val ecoScore = if (ecoScoreIndex != -1) {
+                    cursor.getInt(ecoScoreIndex)
+                } else {
+                    // If column doesn't exist in older database version
+                    calculateLegacyEcoScore(
+                        cursor.getInt(cursor.getColumnIndexOrThrow(KEY_AGGRESSIVE_COUNT)),
+                        cursor.getInt(cursor.getColumnIndexOrThrow(KEY_NORMAL_COUNT))
+                    )
+                }
+                
                 val session = DrivingSession(
                     id = cursor.getLong(cursor.getColumnIndexOrThrow(KEY_ID)),
                     date = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DATE)),
@@ -161,7 +244,8 @@ class DrivingSessionHelper(context: Context) :
                     maxSpeed = cursor.getFloat(cursor.getColumnIndexOrThrow(KEY_MAX_SPEED)),
                     avgSpeed = cursor.getFloat(cursor.getColumnIndexOrThrow(KEY_AVG_SPEED)),
                     aggressiveCount = cursor.getInt(cursor.getColumnIndexOrThrow(KEY_AGGRESSIVE_COUNT)),
-                    normalCount = cursor.getInt(cursor.getColumnIndexOrThrow(KEY_NORMAL_COUNT))
+                    normalCount = cursor.getInt(cursor.getColumnIndexOrThrow(KEY_NORMAL_COUNT)),
+                    ecoScore = ecoScore
                 )
                 sessionsList.add(session)
             } while (cursor.moveToNext())
@@ -169,6 +253,16 @@ class DrivingSessionHelper(context: Context) :
         cursor.close()
         
         return sessionsList
+    }
+    
+    /**
+     * Calculate a legacy eco score for older database entries
+     */
+    private fun calculateLegacyEcoScore(aggressiveCount: Int, normalCount: Int): Int {
+        return EcoScoreCalculator.calculateSimplifiedEcoScore(
+            aggressivePredictions = aggressiveCount,
+            totalPredictions = aggressiveCount + normalCount
+        )
     }
     
     /**
@@ -221,5 +315,6 @@ data class DrivingSession(
     val maxSpeed: Float,
     val avgSpeed: Float,
     val aggressiveCount: Int,
-    val normalCount: Int
+    val normalCount: Int,
+    val ecoScore: Int = 0  // Default to 0 if not provided
 ) 

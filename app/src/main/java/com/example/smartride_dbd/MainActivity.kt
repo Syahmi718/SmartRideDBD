@@ -21,31 +21,45 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.airbnb.lottie.LottieAnimationView
 import androidx.lifecycle.Observer
+import android.widget.EditText
+import java.text.SimpleDateFormat
+import java.util.*
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
+import android.content.Context
+import android.widget.ImageButton
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var backgroundServerManager: BackgroundServerManager
-    private lateinit var toggleNotificationButton: Button
     private lateinit var simulationButton: Button
     private lateinit var notificationStatusTextView: TextView
     private lateinit var speedometerAnimation: LottieAnimationView
     private lateinit var speedValueTextView: TextView
     private lateinit var speedLimitStatusTextView: TextView
-    private lateinit var httpServer: HttpServer
     private lateinit var uiViewModel: UiViewModel
     private var isSimulationActive = false
     private var foregroundService: PredictionForegroundService? = null
     private var serviceBound = false
     
+    // Add bell button
+    private lateinit var notificationBellButton: ImageButton
+    
     // Add driving session variables
     private lateinit var startStopDrivingButton: Button
     private lateinit var drivingSessionStatusText: TextView
     private var isDrivingSessionActive = false
-    private var currentSessionId: Long = -1
+    private var currentSessionId: Long = -1L
     private lateinit var drivingSessionHelper: DrivingSessionHelper
     
     // Add monitor prediction button to control its visibility
     private lateinit var monitorPredictionButton: Button
+    
+    // Add these variables for storing driver and drive names
+    private var driverName: String = ""
+    private var driveName: String = ""
     
     // Service connection for binding to the foreground service
     private val serviceConnection = object : ServiceConnection {
@@ -90,8 +104,13 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Get the UI ViewModel from application
-        uiViewModel = (application as MyApplication).uiViewModel
+        // Initialize the ViewModel - using either application instance or creating a new one
+        try {
+            uiViewModel = (application as? MyApplication)?.uiViewModel ?: UiViewModel()
+        } catch (e: Exception) {
+            // If casting fails, create a new instance
+            uiViewModel = UiViewModel()
+        }
         
         // Initialize driving session helper
         drivingSessionHelper = DrivingSessionHelper(this)
@@ -120,8 +139,6 @@ class MainActivity : AppCompatActivity() {
         })
 
         // Initialize UI components
-        toggleNotificationButton = findViewById(R.id.toggle_notification_button)
-        notificationStatusTextView = findViewById(R.id.notification_status)
         speedometerAnimation = findViewById(R.id.speedometer)
         simulationButton = findViewById(R.id.simulation_button)
         speedValueTextView = findViewById(R.id.speed_value)
@@ -136,6 +153,24 @@ class MainActivity : AppCompatActivity() {
         
         // Initially hide the monitor prediction button
         monitorPredictionButton.visibility = View.GONE
+        
+        // Set up bottom navigation
+        val bottomNavigationView = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_navigation)
+        bottomNavigationView.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_home -> {
+                    // Already on home, do nothing
+                    true
+                }
+                R.id.nav_history -> {
+                    // Navigate to Eco Behaviour Log
+                    val intent = Intent(this, DrivingHistoryLogActivity::class.java)
+                    startActivity(intent)
+                    true
+                }
+                else -> false
+            }
+        }
         
         // Configure Lottie animation - using the non-deprecated approach
         speedometerAnimation.setAnimation(R.raw.speedometer_animation)
@@ -166,16 +201,6 @@ class MainActivity : AppCompatActivity() {
         backgroundServerManager = BackgroundServerManager(this)
         backgroundServerManager.start()
 
-        // Set up HttpServer
-        httpServer = HttpServer(8080, uiViewModel)
-        httpServer.start()
-
-        updateNotificationState()
-
-        toggleNotificationButton.setOnClickListener {
-            showConfirmationDialog()
-        }
-        
         // Set up simulation button for testing
         simulationButton.setOnClickListener {
             toggleSimulationMode()
@@ -189,22 +214,7 @@ class MainActivity : AppCompatActivity() {
             toggleDrivingSession()
         }
 
-        val drivingHistoryLogButton: Button = findViewById(R.id.driving_history_log_button)
         val welcomeText: TextView = findViewById(R.id.welcome_text)
-
-        drivingHistoryLogButton.setOnClickListener {
-            val intent = Intent(this, DrivingHistoryLogActivity::class.java)
-            
-            // Create animation pairs for shared elements
-            val options = ActivityOptions.makeSceneTransitionAnimation(
-                this,
-                Pair(drivingHistoryLogButton as View, "shared_button_transition"),
-                Pair(welcomeText as View, "title_transition")
-            )
-            
-            // Start activity with transition
-            startActivity(intent, options.toBundle())
-        }
 
         monitorPredictionButton.setOnClickListener {
             val intent = Intent(this, PredictionActivity::class.java)
@@ -219,6 +229,17 @@ class MainActivity : AppCompatActivity() {
             // Start activity with transition
             startActivity(intent, options.toBundle())
         }
+
+        // Get reference to the notification bell button
+        notificationBellButton = findViewById(R.id.notification_bell_button)
+        
+        // Set up notification bell button click listener
+        notificationBellButton.setOnClickListener {
+            showConfirmationDialog()
+        }
+        
+        // Update notification bell icon state
+        updateNotificationState()
     }
     
     override fun onResume() {
@@ -359,11 +380,15 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateNotificationState() {
         val isEnabled = NotificationUtils.isNotificationEnabled(this)
-        notificationStatusTextView.text = if (isEnabled) "Notification Enabled!" else "Notification Disabled!"
-        notificationStatusTextView.setTextColor(
-            if (isEnabled) getColor(R.color.green) else getColor(R.color.red)
+        
+        // Update bell icon based on notification status
+        notificationBellButton.setImageResource(
+            if (isEnabled) R.drawable.ic_bell_enabled else R.drawable.ic_bell_disabled
         )
-        toggleNotificationButton.text = if (isEnabled) "Disable Notifications" else "Enable Notifications"
+        
+        // Set content description for accessibility
+        notificationBellButton.contentDescription = 
+            if (isEnabled) "Notifications enabled (tap to disable)" else "Notifications disabled (tap to enable)"
     }
     
     override fun onStart() {
@@ -394,7 +419,6 @@ class MainActivity : AppCompatActivity() {
         
         // Stop background services
         backgroundServerManager.stop()
-        httpServer.stop()
         
         // Unbind service if bound
         if (serviceBound) {
@@ -472,6 +496,63 @@ class MainActivity : AppCompatActivity() {
             return
         }
         
+        // Show dialog to get driver and drive name
+        showDriverDetailsDialog()
+    }
+    
+    private fun showDriverDetailsDialog() {
+        // Inflate the dialog with custom view
+        val dialogView = layoutInflater.inflate(R.layout.dialog_driver_details, null)
+        
+        // Get references to EditText fields
+        val driveNameInput = dialogView.findViewById<EditText>(R.id.input_drive_name)
+        val driverNameInput = dialogView.findViewById<EditText>(R.id.input_driver_name)
+        
+        // Build the dialog
+        val dialogBuilder = AlertDialog.Builder(this)
+            .setTitle("Enter Session Details")
+            .setView(dialogView)
+            .setCancelable(false)
+            .setPositiveButton("Start Session") { _, _ ->
+                // Get the text inputs
+                driveName = driveNameInput.text.toString().trim()
+                driverName = driverNameInput.text.toString().trim()
+                
+                if (driveName.isEmpty() || driverName.isEmpty()) {
+                    Toast.makeText(this, "Please enter both drive name and driver name", Toast.LENGTH_SHORT).show()
+                    showDriverDetailsDialog() // Show the dialog again if fields are empty
+                } else {
+                    // Continue with starting the driving session
+                    startDrivingSessionWithDetails()
+                }
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+        
+        // Show the dialog
+        dialogBuilder.create().show()
+    }
+    
+    private fun startDrivingSessionWithDetails() {
+        // Record the session start time
+        val currentTimeMillis = System.currentTimeMillis()
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        val currentDate = dateFormat.format(Date(currentTimeMillis))
+        val currentTime = timeFormat.format(Date(currentTimeMillis))
+        
+        // Save start time and current date/time to preferences
+        getSharedPreferences("smart_ride_prefs", MODE_PRIVATE).edit().apply {
+            putLong("startTime", currentTimeMillis)
+            putString("date", currentDate)
+            putString("time", currentTime)
+            // Reset counters for new session
+            putInt("aggressiveCount", 0)
+            putInt("normalCount", 0)
+            apply()
+        }
+        
         // Start a new driving session in the database
         currentSessionId = drivingSessionHelper.startDrivingSession()
         
@@ -480,7 +561,7 @@ class MainActivity : AppCompatActivity() {
         
         // Update UI
         isDrivingSessionActive = true
-        drivingSessionStatusText.text = "Driving Session: Active"
+        drivingSessionStatusText.text = "Driving Session: Active\nDriver: $driverName"
         startStopDrivingButton.text = "STOP DRIVING"
         startStopDrivingButton.backgroundTintList = ContextCompat.getColorStateList(this, R.color.red)
         
@@ -490,7 +571,50 @@ class MainActivity : AppCompatActivity() {
         // Reset speed counter
         uiViewModel.resetSpeedData()
         
+        // Start collecting sensor data for Eco Score calculation
+        startAccelerometerCollection()
+        
         Toast.makeText(this, "Driving session started. Drive safely!", Toast.LENGTH_SHORT).show()
+    }
+    
+    // Acceleration sensor variables
+    private var sensorManager: SensorManager? = null
+    private var accelerometer: Sensor? = null
+    private val accelerometerListener = object : SensorEventListener {
+        override fun onSensorChanged(event: SensorEvent) {
+            if (event.sensor.type == Sensor.TYPE_ACCELEROMETER && isDrivingSessionActive) {
+                val x = event.values[0]
+                val y = event.values[1]
+                val z = event.values[2]
+                drivingSessionHelper.addAccelerationData(x, y, z)
+            }
+        }
+        
+        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+            // Not needed for this implementation
+        }
+    }
+    
+    private fun startAccelerometerCollection() {
+        // Initialize sensor manager if not already done
+        if (sensorManager == null) {
+            sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+            accelerometer = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        }
+        
+        // Register listener
+        accelerometer?.let {
+            sensorManager?.registerListener(
+                accelerometerListener,
+                it,
+                SensorManager.SENSOR_DELAY_NORMAL
+            )
+        }
+    }
+    
+    private fun stopAccelerometerCollection() {
+        // Unregister listener
+        sensorManager?.unregisterListener(accelerometerListener)
     }
     
     private fun endDrivingSession() {
@@ -499,16 +623,29 @@ class MainActivity : AppCompatActivity() {
             val maxSpeed = uiViewModel.maxSpeed.value ?: 0f
             val currentSpeed = uiViewModel.currentSpeed.value ?: 0f
             
+            // Get counters
+            val aggressiveCount = getSharedPreferences("smart_ride_prefs", MODE_PRIVATE)
+                .getInt("aggressiveCount", 0)
+            val normalCount = getSharedPreferences("smart_ride_prefs", MODE_PRIVATE)
+                .getInt("normalCount", 0)
+            
             // End the session in the database
             drivingSessionHelper.endDrivingSession(
                 sessionId = currentSessionId,
                 maxSpeed = maxSpeed,
                 avgSpeed = currentSpeed, // Using current speed as a simple proxy
-                aggressiveCount = getSharedPreferences("smart_ride_prefs", MODE_PRIVATE)
-                    .getInt("aggressiveCount", 0),
-                normalCount = getSharedPreferences("smart_ride_prefs", MODE_PRIVATE)
-                    .getInt("normalCount", 0)
+                aggressiveCount = aggressiveCount,
+                normalCount = normalCount
             )
+            
+            // Stop collecting sensor data
+            stopAccelerometerCollection()
+            
+            // Calculate Eco Score before saving to DrivingDatabaseHelper
+            val ecoScore = calculateEcoScore(aggressiveCount, normalCount)
+            
+            // Save the session details to the driving database
+            saveDrivingSessionToDatabaseHelper(maxSpeed, ecoScore)
             
             // Stop the foreground service
             if (serviceBound && foregroundService != null) {
@@ -528,10 +665,115 @@ class MainActivity : AppCompatActivity() {
             // Hide the monitor prediction button when driving session is inactive
             monitorPredictionButton.visibility = View.GONE
             
-            // Reset the session ID
+            // Reset the session ID and names
             currentSessionId = -1L
+            driverName = ""
+            driveName = ""
+            
+            // Show Eco Score result
+            showEcoScoreDialog(ecoScore)
             
             Toast.makeText(this, "Driving session completed and saved", Toast.LENGTH_SHORT).show()
         }
+    }
+    
+    private fun showEcoScoreDialog(ecoScore: Int) {
+        // Create dialog to display Eco Score with a visual representation
+        val dialogBuilder = AlertDialog.Builder(this)
+        val inflater = this.layoutInflater
+        val dialogView = inflater.inflate(R.layout.dialog_eco_score, null)
+        dialogBuilder.setView(dialogView)
+        
+        // Set up the Eco Score display
+        val scoreTextView = dialogView.findViewById<TextView>(R.id.eco_score_value)
+        val scoreDescription = dialogView.findViewById<TextView>(R.id.eco_score_description)
+        val dismissButton = dialogView.findViewById<Button>(R.id.eco_score_dismiss_button)
+        
+        // Set the score
+        scoreTextView.text = "$ecoScore"
+        
+        // Set the description based on score
+        val description = when {
+            ecoScore >= 80 -> "Great eco-driving! You're helping reduce carbon emissions."
+            ecoScore >= 50 -> "Good eco-driving. Some room for improvement."
+            else -> "Your driving could be more eco-friendly. Try to drive more smoothly."
+        }
+        scoreDescription.text = description
+        
+        // Set the color based on score
+        val color = when {
+            ecoScore >= 80 -> getColor(R.color.green)
+            ecoScore >= 50 -> getColor(R.color.colorSecondary)
+            else -> getColor(R.color.error)
+        }
+        scoreTextView.setTextColor(color)
+        
+        // Create and show the dialog
+        val alertDialog = dialogBuilder.create()
+        
+        // Set button click listener
+        dismissButton.setOnClickListener {
+            alertDialog.dismiss()
+        }
+        
+        alertDialog.show()
+    }
+    
+    private fun calculateEcoScore(aggressiveCount: Int, normalCount: Int): Int {
+        // In MainActivity, we only use the simplified calculation
+        // The full calculation happens in DrivingSessionHelper using sensor data
+        return EcoScoreCalculator.calculateSimplifiedEcoScore(
+            aggressivePredictions = aggressiveCount,
+            totalPredictions = aggressiveCount + normalCount
+        )
+    }
+    
+    private fun saveDrivingSessionToDatabaseHelper(maxSpeed: Float, ecoScore: Int) {
+        // Get current date and time
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        val currentDate = dateFormat.format(Date())
+        val currentTime = timeFormat.format(Date())
+        
+        // Calculate actual driving time based on session start time
+        val startTime = getSharedPreferences("smart_ride_prefs", MODE_PRIVATE)
+            .getLong("startTime", System.currentTimeMillis())
+        val drivingTimeInMillis = System.currentTimeMillis() - startTime
+        val drivingTime = formatDrivingTime(drivingTimeInMillis)
+        
+        // Get aggressive and normal counts
+        val aggressiveCount = getSharedPreferences("smart_ride_prefs", MODE_PRIVATE)
+            .getInt("aggressiveCount", 0)
+        val normalCount = getSharedPreferences("smart_ride_prefs", MODE_PRIVATE)
+            .getInt("normalCount", 0)
+        
+        // Calculate performance loss based on aggressive ratio (simplified example)
+        val totalCount = aggressiveCount + normalCount
+        val performanceLoss = if (totalCount > 0) {
+            (aggressiveCount.toDouble() / totalCount) * 100.0
+        } else {
+            0.0 // Default to 0% if no predictions were made
+        }
+        
+        // Save to the DrivingDatabaseHelper
+        val dbHelper = DrivingDatabaseHelper(this)
+        dbHelper.insertDrivingSession(
+            date = currentDate,
+            time = currentTime,
+            drivingTime = drivingTime,
+            normalCount = normalCount,
+            aggressiveCount = aggressiveCount,
+            performanceLoss = performanceLoss,
+            driveName = driveName,
+            driverName = driverName,
+            ecoScore = ecoScore
+        )
+    }
+    
+    private fun formatDrivingTime(millis: Long): String {
+        val seconds = (millis / 1000) % 60
+        val minutes = (millis / (1000 * 60)) % 60
+        val hours = millis / (1000 * 60 * 60)
+        return String.format("%02dh %02dm %02ds", hours, minutes, seconds)
     }
 }

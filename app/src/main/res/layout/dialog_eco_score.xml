@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingBottom="24dp">
+
+    <!-- Header -->
+    <TextView
+        android:id="@+id/eco_score_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Your Eco Score"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:padding="16dp"
+        android:background="@color/colorPrimary"
+        android:textColor="@color/textOnPrimary"
+        app:layout_constraintTop_toTopOf="parent"/>
+
+    <!-- Circular Score Display -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/eco_score_card"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:layout_marginTop="24dp"
+        app:cardCornerRadius="60dp"
+        app:cardElevation="4dp"
+        app:layout_constraintTop_toBottomOf="@id/eco_score_title"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:cardBackgroundColor="@color/colorSecondary">
+
+        <TextView
+            android:id="@+id/eco_score_value"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="85"
+            android:textSize="36sp"
+            android:textStyle="bold"
+            android:textColor="@color/textOnPrimary"/>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Eco Score Information -->
+    <LinearLayout
+        android:id="@+id/eco_info_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"
+        app:layout_constraintTop_toBottomOf="@id/eco_score_card">
+
+        <TextView
+            android:id="@+id/eco_score_description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Your driving has been eco-friendly, helping reduce carbon emissions!"
+            android:gravity="center"
+            android:textSize="16sp"
+            android:textColor="@color/colorPrimary"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Score includes smooth driving, acceleration patterns, and driving behavior."
+            android:gravity="center"
+            android:textSize="14sp"
+            android:textColor="#757575"
+            android:layout_marginBottom="16dp"/>
+    </LinearLayout>
+
+    <!-- Dismiss Button -->
+    <Button
+        android:id="@+id/eco_score_dismiss_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Got it!"
+        android:backgroundTint="@color/colorPrimary"
+        android:textColor="@color/textOnPrimary"
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toBottomOf="@id/eco_info_layout"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout> 

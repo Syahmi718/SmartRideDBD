@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import android.util.Log
 import java.text.SimpleDateFormat
 import java.util.*
+import android.view.View
 
 class DrivingHistoryLogActivity : AppCompatActivity() {
 
@@ -21,9 +22,9 @@ class DrivingHistoryLogActivity : AppCompatActivity() {
         setContentView(R.layout.activity_driving_history_log)
 
         // Initialize UI components
-        val endSessionButton: Button = findViewById(R.id.end_session_button)
         val clearHistoryButton: Button = findViewById(R.id.clear_history_button)
         val recyclerView: RecyclerView = findViewById(R.id.history_log_recycler_view)
+        val emptyStateView: View = findViewById(R.id.empty_state)
 
         // Initialize database helper
         databaseHelper = DrivingDatabaseHelper(this)
@@ -32,29 +33,36 @@ class DrivingHistoryLogActivity : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
 
         // Display driving history
-        displayDrivingHistory(recyclerView)
-
-        // Handle "End Driving Session" button click
-        endSessionButton.setOnClickListener {
-            promptForDetailsAndSave()
-        }
+        displayDrivingHistory(recyclerView, emptyStateView)
 
         // Handle "Clear History" button click
         clearHistoryButton.setOnClickListener {
-            databaseHelper.clearAllDrivingSessions()
-            displayDrivingHistory(recyclerView)
-            Toast.makeText(this, "Driving history cleared!", Toast.LENGTH_SHORT).show()
+            // Show confirmation dialog before clearing
+            AlertDialog.Builder(this)
+                .setTitle("Clear Eco Behaviour Log")
+                .setMessage("Are you sure you want to clear all your eco-driving records? This action cannot be undone.")
+                .setPositiveButton("Clear") { _, _ ->
+                    databaseHelper.clearAllDrivingSessions()
+                    displayDrivingHistory(recyclerView, emptyStateView)
+                    Toast.makeText(this, "Eco behaviour log cleared!", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
         }
     }
 
-    private fun displayDrivingHistory(recyclerView: RecyclerView) {
+    private fun displayDrivingHistory(recyclerView: RecyclerView, emptyStateView: View) {
         val drivingHistory = databaseHelper.getAllDrivingSessions()
 
         if (drivingHistory.isNotEmpty()) {
             val adapter = HistoryLogAdapter(drivingHistory)
             recyclerView.adapter = adapter
+            emptyStateView.visibility = View.GONE
+            recyclerView.visibility = View.VISIBLE
         } else {
-            Toast.makeText(this, "No driving history found.", Toast.LENGTH_SHORT).show()
+            recyclerView.visibility = View.GONE
+            emptyStateView.visibility = View.VISIBLE
+            Toast.makeText(this, "No eco-driving records found.", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -176,7 +184,13 @@ class DrivingHistoryLogActivity : AppCompatActivity() {
 
         // Factors
         val aggressiveScore = aggressiveCount.toDouble() / totalPredictions
-        val timePenalty = drivingTimeInMinutes / thresholdTime
+        
+        // Avoid divide by zero with thresholdTime
+        val timePenalty = if (thresholdTime > 0) {
+            drivingTimeInMinutes / thresholdTime
+        } else {
+            0.0
+        }
 
         // Calculate weighted performance loss
         return (aggressiveScore * aggressiveWeight + timePenalty * timeWeight) * 100

@@ -6,6 +6,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.Date
 
 class HistoryLogAdapter(
     private val logs: List<Map<String, String>>
@@ -30,38 +33,65 @@ class HistoryLogAdapter(
         val log = logs[position]
 
         // Set drive and driver names
-        holder.logDriveName.text = "Drive Name: ${log[DrivingDatabaseHelper.COLUMN_DRIVE_NAME] ?: "N/A"}"
-        holder.logDriverName.text = "Driver Name: ${log[DrivingDatabaseHelper.COLUMN_DRIVER_NAME] ?: "N/A"}"
+        holder.logDriveName.text = log[DrivingDatabaseHelper.COLUMN_DRIVE_NAME] ?: "Unnamed Drive"
+        holder.logDriverName.text = log[DrivingDatabaseHelper.COLUMN_DRIVER_NAME] ?: "Unknown Driver"
 
-        // Set date and time
-        holder.logDate.text = "Date: ${log[DrivingDatabaseHelper.COLUMN_DATE] ?: "N/A"}"
-        holder.logTime.text = "Time: ${log[DrivingDatabaseHelper.COLUMN_TIME] ?: "N/A"}"
+        // Set date and time with minimalistic formatting
+        holder.logDate.text = formatDate(log[DrivingDatabaseHelper.COLUMN_DATE] ?: "N/A")
+        holder.logTime.text = formatTime(log[DrivingDatabaseHelper.COLUMN_TIME] ?: "N/A")
 
         // Set driving time
-        holder.logDrivingTime.text = "Driving Time: ${log[DrivingDatabaseHelper.COLUMN_DRIVING_TIME] ?: "N/A"}"
+        holder.logDrivingTime.text = log[DrivingDatabaseHelper.COLUMN_DRIVING_TIME] ?: "N/A"
 
-        // Parse normal and aggressive counts
+        // Parse normal and aggressive counts and format them better
         val normalCount = log[DrivingDatabaseHelper.COLUMN_NORMAL_COUNT]?.toIntOrNull() ?: 0
         val aggressiveCount = log[DrivingDatabaseHelper.COLUMN_AGGRESSIVE_COUNT]?.toIntOrNull() ?: 0
-        holder.logPredictions.text = "Normal: $normalCount, Aggressive: $aggressiveCount"
-
-        // Color code for Normal and Aggressive counts
-        holder.logPredictions.setTextColor(
-            if (aggressiveCount > normalCount) Color.RED else Color.GREEN
-        )
-
-        // Parse performance loss
-        val performanceLoss = log[DrivingDatabaseHelper.COLUMN_PERFORMANCE_LOSS]?.toDoubleOrNull() ?: 0.0
-        holder.logPerformanceLoss.text = "Performance Loss: ${String.format("%.2f", performanceLoss)}%"
-
-        // Color for performance loss
-        val performanceColor = when {
-            performanceLoss > 75 -> Color.RED
-            performanceLoss > 50 -> Color.YELLOW
-            else -> Color.GREEN
+        
+        // Format driving behavior with proper spacing and layout
+        if (normalCount == 0 && aggressiveCount == 0) {
+            holder.logPredictions.text = "No data recorded"
+        } else {
+            holder.logPredictions.text = "$normalCount normal · $aggressiveCount aggressive"
         }
-        holder.logPerformanceLoss.setTextColor(performanceColor)
+
+        // Use Eco Score directly instead of calculating from performance loss
+        val ecoScore = log[DrivingDatabaseHelper.COLUMN_ECO_SCORE]?.toIntOrNull() ?: 0
+        holder.logPerformanceLoss.text = "${ecoScore}%"
+
+        // Color for eco score
+        val ecoScoreColor = when {
+            ecoScore > 80 -> Color.parseColor("#4CAF50") // Green for good
+            ecoScore > 50 -> Color.parseColor("#FF9800") // Orange for moderate
+            else -> Color.parseColor("#F44336") // Red for poor
+        }
+        
+        // We're not setting the text color because we're displaying it on a logo background
+        // Instead, we'll change the background tint if possible, or leave as is if not applicable
     }
 
     override fun getItemCount() = logs.size
+    
+    private fun formatDate(dateStr: String): String {
+        // Convert yyyy-MM-dd to "dd MMM yyyy" (e.g., "13 May 2025")
+        try {
+            val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val outputFormat = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
+            val date = inputFormat.parse(dateStr)
+            return date?.let { outputFormat.format(it) } ?: dateStr
+        } catch (e: Exception) {
+            return dateStr
+        }
+    }
+    
+    private fun formatTime(timeStr: String): String {
+        // Convert HH:mm:ss to "h.mm a" (e.g., "1.07 PM")
+        try {
+            val inputFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+            val outputFormat = SimpleDateFormat("h.mm a", Locale.getDefault())
+            val time = inputFormat.parse(timeStr)
+            return time?.let { outputFormat.format(it) } ?: timeStr
+        } catch (e: Exception) {
+            return timeStr
+        }
+    }
 }
