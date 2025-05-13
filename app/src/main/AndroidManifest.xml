@@ -14,6 +14,10 @@
     
     <!-- Features for GPS -->
     <uses-feature android:name="android.hardware.location.gps" android:required="true" />
+    
+    <!-- Sensor features -->
+    <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="true" />
+    <uses-feature android:name="android.hardware.sensor.gyroscope" android:required="true" />
 
     <!-- Target SDK and compatibility notes -->
     <!-- 
